@@ -4,6 +4,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { GatewayIntentBits } from 'discord.js';
 
 import { BotModule } from './bot/bot.module';
+import { ToornamentModule } from './toornament/toornament.module';
 
 @Module({
   imports: [
@@ -25,6 +26,7 @@ import { BotModule } from './bot/bot.module';
       inject: [ConfigService],
     }),
     BotModule,
+    ToornamentModule,
   ],
 })
 export class AppModule {}
