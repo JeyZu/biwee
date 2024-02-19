@@ -1,33 +1,27 @@
+// toornament-auth.service.ts
 import { HttpService } from "@nestjs/axios";
 import { Injectable } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { lastValueFrom } from "rxjs";
-
+import { TokenStore } from "./token.store";
 @Injectable()
 export class ToornamentAuthService {
-  private accessToken: string;
-  private accessTokenExpires: Date;
+  private tokenStore = new TokenStore(); 
 
   constructor(
     private httpService: HttpService,
     private configService: ConfigService
   ) {}
 
-  async getAccessToken(): Promise<string> {
-    // Check if the current token is still valid
-    if (this.accessToken && new Date() < this.accessTokenExpires) {
-        return this.accessToken;
+  async getAccessToken(scope: string): Promise<string> {
+    let token = this.tokenStore.getToken(scope);
+    if (token) {
+      return token;
     }
-    console.log('i go there')
 
-    // Retrieve new token
     const clientId = this.configService.get<string>("TOORNAMENT_CLIENT_ID");
     const clientSecret = this.configService.get<string>(
       "TOORNAMENT_CLIENT_SECRET"
-    );
-    const scope = this.configService.get<string>(
-      "TOORNAMENT_SCOPE",
-      "organizer:admin"
     );
 
     try {
@@ -38,20 +32,20 @@ export class ToornamentAuthService {
           {
             headers: {
               "Content-Type": "application/x-www-form-urlencoded",
+              skipInterceptor: true,
+              "X-Custom-Scope": scope
             },
           }
         )
       );
 
-      this.accessToken = response.data.access_token;
-      // Calculate the expiry time based on the current time and the expires_in duration
-      this.accessTokenExpires = new Date(
-        new Date().getTime() + response.data.expires_in * 1000
-      );
+      const newToken = response.data.access_token;
+      const expiresIn = response.data.expires_in;
 
-      return this.accessToken;
+      this.tokenStore.setToken(scope, newToken, expiresIn);
+
+      return newToken;
     } catch (error) {
-      // Handle or log the error appropriately
       console.error("Error fetching Toornament access token:", error);
       throw error;
     }
