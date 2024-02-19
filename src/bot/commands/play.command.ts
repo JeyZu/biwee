@@ -7,7 +7,7 @@ import {
 } from '@discord-nestjs/core';
 import { ClientEvents } from 'discord.js';
 import { catchError, from, map, Observable } from 'rxjs';
-import { ToornamentAuthService } from 'src/toornament/auth.service';
+import { ToornamentService } from 'src/toornament/tournament.service';
 
 import { PlayDto } from '../dto/play.dto';
 
@@ -17,7 +17,7 @@ import { PlayDto } from '../dto/play.dto';
 })
 export class PlayCommand {
 
-  constructor(private authService: ToornamentAuthService) {}
+  constructor(private toornamentService: ToornamentService) {}
 
   @Handler()
   onPlayCommand(
@@ -25,12 +25,14 @@ export class PlayCommand {
     @EventParams() args: ClientEvents['interactionCreate'],
   ): Observable<string> {
     // Convert the promise to an observable
-    const accessTokenObservable = from(this.authService.getAccessToken());
+    const accessTokenObservable = from(this.toornamentService.getAllTournaments());
 
     // Subscribe to the observable
     return accessTokenObservable.pipe(
       map((accessToken) => {
+        console.log(accessToken);
         return `Start playing ${dto.song}. Access Token: ${accessToken}`;
+        
       }),
       catchError((error) => {
         console.error("Error getting access token:", error);
